@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
+import * as React from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   LayoutDashboard,
   Store,
@@ -17,24 +17,24 @@ import {
   X,
   ChevronRight,
   LogOut,
-} from "lucide-react";
+} from 'lucide-react';
 // Import Supabase client directly
-import supabase from "@/lib/supabaseClient";
-import * as Avatar from "@radix-ui/react-avatar";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { motion } from "framer-motion";
+import supabase from '@/lib/supabaseClient';
+import * as Avatar from '@radix-ui/react-avatar';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { motion } from 'framer-motion';
 
-import { cn } from "@/utils/cn";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { cn } from '@/utils/cn';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
-type UserRole = "admin" | "retailer" | "agent";
+type UserRole = 'admin' | 'retailer' | 'agent';
 
 interface LayoutProps {
   children: React.ReactNode;
   role?: UserRole;
 }
 
-export function Layout({ children, role = "admin" }: LayoutProps) {
+export function Layout({ children, role = 'admin' }: LayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -71,87 +71,34 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
-      router.push("/");
+      router.push('/');
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error('Error signing out:', error);
     }
   };
 
   // Generate navigation items based on user role
-  const getNavItems = (role: UserRole) => {
-    switch (role) {
-      case "admin":
-        return [
-          {
-            name: "Dashboard",
-            href: "/admin",
-            icon: LayoutDashboard,
-          },
-          {
-            name: "Retailers",
-            href: "/admin/retailers",
-            icon: Store,
-          },
-          {
-            name: "Vouchers",
-            href: "/admin/vouchers",
-            icon: CreditCard,
-          },
-          {
-            name: "Commissions",
-            href: "/admin/commissions",
-            icon: Percent,
-          },
-          {
-            name: "Reports",
-            href: "/admin/reports",
-            icon: FileText,
-          },
-          // Profile removed from sidebar nav
-        ];
-      case "retailer":
-        return [
-          {
-            name: "Sell",
-            href: "/retailer",
-            icon: ShoppingCart,
-          },
-          {
-            name: "History",
-            href: "/retailer/history",
-            icon: History,
-          },
-          {
-            name: "Account",
-            href: "/retailer/account",
-            icon: User,
-          },
-        ];
-      case "agent":
-        return [
-          {
-            name: "Dashboard",
-            href: "/agent",
-            icon: LayoutDashboard,
-          },
-          {
-            name: "Retailers",
-            href: "/agent/retailers",
-            icon: Store,
-          },
-          {
-            name: "Commissions",
-            href: "/agent/commissions",
-            icon: Percent,
-          },
-          // Profile removed from sidebar nav
-        ];
-      default:
-        return [];
-    }
+  const getNavItems = () => {
+    return [
+      {
+        name: 'Sell',
+        href: '/retailer',
+        icon: ShoppingCart,
+      },
+      {
+        name: 'History',
+        href: '/retailer/history',
+        icon: History,
+      },
+      {
+        name: 'Account',
+        href: '/retailer/account',
+        icon: User,
+      },
+    ];
   };
 
-  const navItems = getNavItems(role);
+  const navItems = getNavItems();
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -177,7 +124,7 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
             className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 z-50 w-64 animate-in slide-in-from-left border-r border-border bg-background p-4 md:hidden">
+          <div className="fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-background p-4 animate-in slide-in-from-left md:hidden">
             <div className="flex justify-end">
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -191,23 +138,22 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">AirVoucher</h1>
                 {/* Logout button removed from top of sidebar */}
-                <div className="w-8 h-5"></div>{" "}
-                {/* Spacer to maintain layout */}
+                <div className="h-5 w-8"></div> {/* Spacer to maintain layout */}
               </div>
-              <div className="mt-4 rounded-full bg-primary py-1 px-4 text-center text-sm font-medium text-primary-foreground">
+              <div className="mt-4 rounded-full bg-primary px-4 py-1 text-center text-sm font-medium text-primary-foreground">
                 {role.charAt(0).toUpperCase() + role.slice(1)} Portal
               </div>
             </div>
             <nav className="mt-8 flex flex-col space-y-1">
-              {navItems.map((item) => (
+              {navItems.map(item => (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center rounded-md px-3 py-2 text-sm transition-colors",
+                    'flex items-center rounded-md px-3 py-2 text-sm transition-colors',
                     pathname === item.href
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "hover:bg-muted"
+                      ? 'bg-primary/10 font-medium text-primary'
+                      : 'hover:bg-muted'
                   )}
                   onClick={() => setSidebarOpen(false)}
                 >
@@ -221,22 +167,18 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
                 <DropdownMenu.Root>
                   <DropdownMenu.Trigger asChild>
                     <button
-                      className="w-full p-3 rounded-md flex items-center hover:bg-muted transition-colors outline-none border-0 focus:outline-none focus:border-0 focus:ring-0 focus-visible:outline-none"
+                      className="flex w-full items-center rounded-md border-0 p-3 outline-none transition-colors hover:bg-muted focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none"
                       aria-label="User menu"
                       style={{
-                        outline: "none !important",
-                        border: "none !important",
+                        outline: 'none !important',
+                        border: 'none !important',
                       }}
                     >
-                      <Avatar.Root className="w-8 h-8 rounded-full overflow-hidden bg-primary flex items-center justify-center text-primary-foreground mr-3">
-                        <Avatar.Fallback>
-                          {user.email.charAt(0).toUpperCase()}
-                        </Avatar.Fallback>
+                      <Avatar.Root className="mr-3 flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary text-primary-foreground">
+                        <Avatar.Fallback>{user.email.charAt(0).toUpperCase()}</Avatar.Fallback>
                       </Avatar.Root>
                       <div className="flex-1 text-left">
-                        <p className="text-sm font-medium truncate">
-                          {user.email}
-                        </p>
+                        <p className="truncate text-sm font-medium">{user.email}</p>
                         <p className="text-xs text-muted-foreground">
                           {role.charAt(0).toUpperCase() + role.slice(1)}
                         </p>
@@ -248,52 +190,50 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
                       side="top"
                       align="start"
                       sideOffset={8}
-                      className="z-50 min-w-[200px] bg-background shadow-none overflow-hidden animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200 p-1 border-0 outline-none ring-0 focus:outline-none focus:border-0 focus:ring-0"
+                      className="z-50 min-w-[200px] overflow-hidden border-0 bg-background p-1 shadow-none outline-none ring-0 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200 focus:border-0 focus:outline-none focus:ring-0"
                       style={{
-                        boxShadow: "none !important",
-                        outline: "none !important",
-                        border: "none !important",
-                        borderRadius: "0.375rem",
+                        boxShadow: 'none !important',
+                        outline: 'none !important',
+                        border: 'none !important',
+                        borderRadius: '0.375rem',
                       }}
                     >
                       <DropdownMenu.Item
-                        className="flex items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted group outline-none border-0 focus:outline-none focus:border-0 focus:ring-0 data-[highlighted]:outline-none data-[highlighted]:bg-muted data-[highlighted]:border-0 data-[state=open]:outline-none cursor-pointer"
+                        className="group flex cursor-pointer items-center rounded-md border-0 px-3 py-2 text-sm outline-none transition-colors hover:bg-muted focus:border-0 focus:outline-none focus:ring-0 data-[highlighted]:border-0 data-[highlighted]:bg-muted data-[highlighted]:outline-none data-[state=open]:outline-none"
                         onSelect={() => {
                           // Navigate to profile based on role
                           const profilePath =
-                            role === "retailer"
-                              ? "/retailer/account"
-                              : `/${role}/profile`;
+                            role === 'retailer' ? '/retailer/account' : `/${role}/profile`;
                           router.push(profilePath);
                           setSidebarOpen(false); // Close sidebar after navigation
                         }}
                       >
                         <motion.div
-                          className="flex items-center justify-between w-full"
+                          className="flex w-full items-center justify-between"
                           whileHover={{ scale: 1.01 }}
-                          transition={{ duration: 0.1, ease: "easeOut" }}
+                          transition={{ duration: 0.1, ease: 'easeOut' }}
                         >
                           <div className="flex items-center">
                             <User className="mr-3 h-5 w-5" />
                             View Profile
                           </div>
-                          <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ChevronRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
                         </motion.div>
                       </DropdownMenu.Item>
                       <DropdownMenu.Item
-                        className="flex items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted group outline-none border-0 focus:outline-none focus:border-0 focus:ring-0 data-[highlighted]:outline-none data-[highlighted]:bg-muted data-[highlighted]:border-0 data-[state=open]:outline-none cursor-pointer"
+                        className="group flex cursor-pointer items-center rounded-md border-0 px-3 py-2 text-sm outline-none transition-colors hover:bg-muted focus:border-0 focus:outline-none focus:ring-0 data-[highlighted]:border-0 data-[highlighted]:bg-muted data-[highlighted]:outline-none data-[state=open]:outline-none"
                         onSelect={handleSignOut}
                       >
                         <motion.div
-                          className="flex items-center justify-between w-full"
+                          className="flex w-full items-center justify-between"
                           whileHover={{ scale: 1.01 }}
-                          transition={{ duration: 0.1, ease: "easeOut" }}
+                          transition={{ duration: 0.1, ease: 'easeOut' }}
                         >
                           <div className="flex items-center">
                             <LogOut className="mr-3 h-5 w-5" />
                             Sign Out
                           </div>
-                          <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ChevronRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
                         </motion.div>
                       </DropdownMenu.Item>
                     </DropdownMenu.Content>
@@ -303,9 +243,7 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
             )}
             <div className="absolute bottom-4 left-4 right-4">
               <div className="flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">
-                  © 2025 AirVoucher
-                </div>
+                <div className="text-xs text-muted-foreground">© 2025 AirVoucher</div>
                 <ThemeToggle />
               </div>
             </div>
@@ -320,24 +258,24 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold">AirVoucher</h1>
               {/* Logout button removed from top of sidebar */}
-              <div className="w-8 h-5"></div> {/* Spacer to maintain layout */}
+              <div className="h-5 w-8"></div> {/* Spacer to maintain layout */}
             </div>
-            <div className="mt-4 rounded-full bg-primary py-1 px-4 text-center text-sm font-medium text-primary-foreground">
+            <div className="mt-4 rounded-full bg-primary px-4 py-1 text-center text-sm font-medium text-primary-foreground">
               {role.charAt(0).toUpperCase() + role.slice(1)} Portal
             </div>
           </div>
           {/* User info removed from here - moved to bottom */}
 
           <nav className="flex flex-1 flex-col space-y-1">
-            {navItems.map((item) => (
+            {navItems.map(item => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "group flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
+                  'group flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors',
                   pathname === item.href
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "hover:bg-muted"
+                    ? 'bg-primary/10 font-medium text-primary'
+                    : 'hover:bg-muted'
                 )}
               >
                 <div className="flex items-center">
@@ -346,8 +284,8 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
                 </div>
                 <ChevronRight
                   className={cn(
-                    "h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100",
-                    pathname === item.href ? "opacity-100" : ""
+                    'h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100',
+                    pathname === item.href ? 'opacity-100' : ''
                   )}
                 />
               </Link>
@@ -362,22 +300,20 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <button
-                    className="w-full p-3 rounded-md flex items-center hover:bg-muted transition-colors outline-none border-0 focus:outline-none focus:border-0 focus:ring-0 focus-visible:outline-none"
+                    className="flex w-full items-center rounded-md border-0 p-3 outline-none transition-colors hover:bg-muted focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none"
                     aria-label="User menu"
                     style={{
-                      outline: "none !important",
-                      border: "none !important",
+                      outline: 'none !important',
+                      border: 'none !important',
                     }}
                   >
-                    <Avatar.Root className="w-8 h-8 rounded-full overflow-hidden bg-primary flex items-center justify-center text-primary-foreground mr-3">
+                    <Avatar.Root className="mr-3 flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary text-primary-foreground">
                       <Avatar.Fallback>
-                        {user.email ? user.email.charAt(0).toUpperCase() : "U"}
+                        {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
                       </Avatar.Fallback>
                     </Avatar.Root>
                     <div className="flex-1 text-left">
-                      <p className="text-sm font-medium truncate">
-                        {user?.email || "User"}
-                      </p>
+                      <p className="truncate text-sm font-medium">{user?.email || 'User'}</p>
                       <p className="text-xs text-muted-foreground">
                         {role.charAt(0).toUpperCase() + role.slice(1)}
                       </p>
@@ -389,51 +325,49 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
                     side="top"
                     align="start"
                     sideOffset={8}
-                    className="z-50 min-w-[200px] bg-background shadow-none overflow-hidden animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200 p-1 border-0 outline-none ring-0 focus:outline-none focus:border-0 focus:ring-0"
+                    className="z-50 min-w-[200px] overflow-hidden border-0 bg-background p-1 shadow-none outline-none ring-0 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200 focus:border-0 focus:outline-none focus:ring-0"
                     style={{
-                      boxShadow: "none !important",
-                      outline: "none !important",
-                      border: "none !important",
-                      borderRadius: "0.375rem",
+                      boxShadow: 'none !important',
+                      outline: 'none !important',
+                      border: 'none !important',
+                      borderRadius: '0.375rem',
                     }}
                   >
                     <DropdownMenu.Item
-                      className="flex items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted group outline-none border-0 focus:outline-none focus:border-0 focus:ring-0 data-[highlighted]:outline-none data-[highlighted]:bg-muted data-[highlighted]:border-0 data-[state=open]:outline-none cursor-pointer"
+                      className="group flex cursor-pointer items-center rounded-md border-0 px-3 py-2 text-sm outline-none transition-colors hover:bg-muted focus:border-0 focus:outline-none focus:ring-0 data-[highlighted]:border-0 data-[highlighted]:bg-muted data-[highlighted]:outline-none data-[state=open]:outline-none"
                       onSelect={() => {
                         // Navigate to profile based on role
                         const profilePath =
-                          role === "retailer"
-                            ? "/retailer/account"
-                            : `/${role}/profile`;
+                          role === 'retailer' ? '/retailer/account' : `/${role}/profile`;
                         router.push(profilePath);
                       }}
                     >
                       <motion.div
-                        className="flex items-center justify-between w-full"
+                        className="flex w-full items-center justify-between"
                         whileHover={{ scale: 1.01 }}
-                        transition={{ duration: 0.1, ease: "easeOut" }}
+                        transition={{ duration: 0.1, ease: 'easeOut' }}
                       >
                         <div className="flex items-center">
                           <User className="mr-3 h-5 w-5" />
                           View Profile
                         </div>
-                        <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ChevronRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
                       </motion.div>
                     </DropdownMenu.Item>
                     <DropdownMenu.Item
-                      className="flex items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted group outline-none border-0 focus:outline-none focus:border-0 focus:ring-0 data-[highlighted]:outline-none data-[highlighted]:bg-muted data-[highlighted]:border-0 data-[state=open]:outline-none cursor-pointer"
+                      className="group flex cursor-pointer items-center rounded-md border-0 px-3 py-2 text-sm outline-none transition-colors hover:bg-muted focus:border-0 focus:outline-none focus:ring-0 data-[highlighted]:border-0 data-[highlighted]:bg-muted data-[highlighted]:outline-none data-[state=open]:outline-none"
                       onSelect={handleSignOut}
                     >
                       <motion.div
-                        className="flex items-center justify-between w-full"
+                        className="flex w-full items-center justify-between"
                         whileHover={{ scale: 1.01 }}
-                        transition={{ duration: 0.1, ease: "easeOut" }}
+                        transition={{ duration: 0.1, ease: 'easeOut' }}
                       >
                         <div className="flex items-center">
                           <LogOut className="mr-3 h-5 w-5" />
                           Sign Out
                         </div>
-                        <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ChevronRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
                       </motion.div>
                     </DropdownMenu.Item>
                   </DropdownMenu.Content>
@@ -442,11 +376,9 @@ export function Layout({ children, role = "admin" }: LayoutProps) {
             </div>
           )}
 
-          <div className="pt-4 border-t border-border">
+          <div className="border-t border-border pt-4">
             <div className="flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">
-                © 2025 AirVoucher
-              </div>
+              <div className="text-xs text-muted-foreground">© 2025 AirVoucher</div>
               <ThemeToggle />
             </div>
           </div>

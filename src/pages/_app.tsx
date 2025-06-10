@@ -4,35 +4,53 @@ import { ToastProvider } from "@/components/ToastProvider";
 import { Layout } from "@/components/Layout";
 import { useRouter } from "next/router";
 import type { AppProps } from "next/app";
-import { SessionContextProvider } from "@supabase/auth-helpers-react";
-import supabase from "@/lib/supabaseClient";
+import { useEffect, useState } from "react";
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  
+  // Only show the application after first client-side render to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Check for portal pages (new portal routing structure)
+  const isPortalAuthPage = router.pathname.startsWith("/portal/") && router.pathname.endsWith("/auth");
+  
+  // Original checks
   const isLandingPage = router.pathname === "/";
-  const isAuthPage = router.pathname.startsWith("/auth/");
+  const isAuthPage = router.pathname.startsWith("/auth") || isPortalAuthPage;
+  const is404Page = router.pathname === "/404";
 
-  // Determine user role based on URL path
-  let role: "admin" | "retailer" | "agent" = "admin";
-  if (router.pathname.startsWith("/retailer")) {
-    role = "retailer";
-  } else if (router.pathname.startsWith("/agent")) {
-    role = "agent";
+  // Render a loader initially before client-side code runs
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
   }
 
+  // For auth pages, landing page, and 404 page, render without Layout
+  if (isAuthPage || isLandingPage || is404Page) {
+    return (
+      <ThemeProvider attribute="class">
+        <ToastProvider>
+          <Component {...pageProps} />
+        </ToastProvider>
+      </ThemeProvider>
+    );
+  }
+
+  // For protected pages, use Layout
   return (
     <ThemeProvider attribute="class">
-      <SessionContextProvider supabaseClient={supabase}>
-        <ToastProvider>
-          {isLandingPage || isAuthPage ? (
+      <ToastProvider>        
+          <Layout>
             <Component {...pageProps} />
-          ) : (
-            <Layout role={role}>
-              <Component {...pageProps} />
-            </Layout>
-          )}
-        </ToastProvider>
-      </SessionContextProvider>
+          </Layout>        
+      </ToastProvider>
     </ThemeProvider>
   );
 }
