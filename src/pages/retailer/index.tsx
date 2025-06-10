@@ -1,58 +1,62 @@
-import * as React from "react";
-import { Wallet, CreditCard, Percent, Tags } from "lucide-react";
-import { motion } from "framer-motion";
+import * as React from 'react';
+import { Wallet, CreditCard, Percent, Activity, Calendar, ShoppingBag } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-import { StatsTile } from "@/components/ui/stats-tile";
-import { ConfettiOverlay } from "@/components/ConfettiOverlay";
-import TerminalSelector from "@/components/TerminalSelector";
-import { retailers, vouchers } from "@/lib/MockData";
-import { cn } from "@/utils/cn";
-import useRequireRole from "@/hooks/useRequireRole";
+import { StatsTile } from '@/components/ui/stats-tile';
+import TerminalSelector from '@/components/TerminalSelector';
+import { retailers, vouchers } from '@/lib/MockData';
+import { cn } from '@/utils/cn';
+import useRequireRole from '@/hooks/useRequireRole';
+import { SalesTable, SalesReport } from '../../components/retailer/SalesTable';
 
-type VoucherCategoryProps = {
-  name: string;
-  icon: React.ReactNode;
-  color: string;
-  onClick: () => void;
+// Type definitions for chart data
+type SalesDataPoint = {
+  date: string;
+  amount: number;
 };
 
-const VoucherCategory = ({
-  name,
-  icon,
-  color,
-  onClick,
-}: VoucherCategoryProps) => (
-  <motion.button
-    whileHover={{ scale: 1.03 }}
-    whileTap={{ scale: 0.97 }}
-    onClick={onClick}
-    className={cn(
-      "flex flex-col items-center justify-center rounded-lg border border-border p-4 text-center shadow-sm transition-colors",
-      "sm:p-6",
-      "hover:border-primary/20 hover:shadow-md",
-      color
-    )}
-  >
-    <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-      {icon}
+type VoucherTypeSales = {
+  type: string;
+  value: number;
+};
+
+// Component for the retailer's sales chart
+const RetailerSalesChart = ({ data }: { data: SalesDataPoint[] }) => (
+  <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+    <h3 className="mb-4 font-medium">Sales Over Time</h3>
+    <div className="h-64 w-full">
+      {/* Replace with actual chart implementation */}
+      <div className="flex h-full items-center justify-center text-muted-foreground">
+        <div className="space-y-2 text-center">
+          <Activity className="mx-auto h-10 w-10 text-primary" />
+          <p>Sales activity visualization</p>
+          <p className="text-sm">Last 30 days of sales</p>
+        </div>
+      </div>
     </div>
-    <span className="font-medium">{name}</span>
-  </motion.button>
+  </div>
 );
 
-export default function RetailerPOS() {
-  // Protect this route - only allow retailer role
-  const { isLoading } = useRequireRole("retailer");
+// Component for the voucher type breakdown chart
+const VoucherTypeChart = ({ data }: { data: VoucherTypeSales[] }) => (
+  <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+    <h3 className="mb-4 font-medium">Sales by Voucher Type</h3>
+    <div className="h-64 w-full">
+      {/* Replace with actual chart implementation */}
+      <div className="flex h-full items-center justify-center text-muted-foreground">
+        <div className="space-y-2 text-center">
+          <ShoppingBag className="mx-auto h-10 w-10 text-primary" />
+          <p>Voucher type breakdown</p>
+          <p className="text-sm">Distribution of sales by product</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
-  // Define all hooks before any conditional returns
-  const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
-  const [selectedCategory, setSelectedCategory] = React.useState<string | null>(
-    null
-  );
-  const [selectedValue, setSelectedValue] = React.useState<number | null>(null);
-  const [showConfetti, setShowConfetti] = React.useState(false);
-  const [showToast, setShowToast] = React.useState(false);
-  const [saleComplete, setSaleComplete] = React.useState(false);
+export default function RetailerDashboard() {
+  // Protect this route - only allow retailer role
+  const { isLoading } = useRequireRole('retailer');
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -65,270 +69,110 @@ export default function RetailerPOS() {
   }
 
   // Get the first active retailer for demo purposes
-  const retailer = retailers.find((r) => r.status === "active") || retailers[0];
+  const retailer = retailers.find(r => r.status === 'active') || retailers[0];
 
-  // Voucher categories with their display properties
-  const voucherCategories = [
-    {
-      name: "Mobile",
-      icon: <CreditCard className="h-6 w-6" />,
-      color: "bg-blue-500/5 hover:bg-blue-500/10",
-    },
-    {
-      name: "OTT",
-      icon: <Tags className="h-6 w-6" />,
-      color: "bg-purple-500/5 hover:bg-purple-500/10",
-    },
-    {
-      name: "Hollywoodbets",
-      icon: <Wallet className="h-6 w-6" />,
-      color: "bg-green-500/5 hover:bg-green-500/10",
-    },
-    {
-      name: "Ringa",
-      icon: <CreditCard className="h-6 w-6" />,
-      color: "bg-amber-500/5 hover:bg-amber-500/10",
-    },
-    {
-      name: "EasyLoad",
-      icon: <Wallet className="h-6 w-6" />,
-      color: "bg-pink-500/5 hover:bg-pink-500/10",
-    },
+  // Mock data for the retailer dashboard
+  // In a real application, these would come from API calls
+  const todaySales = 2350.75;
+  const todaySalesCount = 15;
+  const weekSales = 15420.3;
+  const monthSales = 42689.5;
+
+  // Mock sales data for charts
+  const salesTimeData: SalesDataPoint[] = [
+    { date: '2023-05-01', amount: 1200 },
+    { date: '2023-05-02', amount: 1500 },
+    // More data points would be here
   ];
 
-  // Get vouchers for a specific category
-  const getVouchersForCategory = (category: string) => {
-    return vouchers.filter(
-      (voucher) => voucher.type === category && voucher.stock > 0
-    );
-  };
+  const voucherTypeData: VoucherTypeSales[] = [
+    { type: 'Mobile', value: 5200 },
+    { type: 'OTT', value: 3100 },
+    { type: 'Hollywoodbets', value: 2400 },
+    // More data here
+  ];
 
-  // Handle category selection
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-    setSelectedValue(null);
-  };
+  // Mock sales data for the table
+  const recentSales = [
+    { date: 'May 12, 2023, 14:25', type: 'Mobile', amount: 200, commission: 10 },
+    { date: 'May 12, 2023, 11:30', type: 'OTT', amount: 150, commission: 7.5 },
+    { date: 'May 11, 2023, 17:15', type: 'Hollywoodbets', amount: 300, commission: 15 },
+    { date: 'May 11, 2023, 09:45', type: 'Ringa', amount: 120, commission: 6 },
+    { date: 'May 10, 2023, 16:20', type: 'Mobile', amount: 250, commission: 12.5 },
+  ];
 
-  // Handle voucher value selection
-  const handleValueSelect = (value: number) => {
-    setSelectedValue(value);
-    setShowConfirmDialog(true);
-  };
-
-  // Handle sale confirmation
-  const handleConfirmSale = () => {
-    // In a real app, we would process the sale here
-    setShowConfirmDialog(false);
-
-    // Show confetti and toast for visual feedback
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 3000);
-
-    setSaleComplete(true);
-    setShowToast(true);
-
-    // Reset after a delay
-    setTimeout(() => {
-      setSelectedCategory(null);
-      setSelectedValue(null);
-      setSaleComplete(false);
-      setShowToast(false);
-    }, 4000);
-  };
+  // Prepare data for SalesTable
+  // Convert recentSales to SalesReport[] shape for demo
+  const salesData: SalesReport[] = [
+    {
+      id: '1',
+      created_at: '2025-06-05T19:56:00Z',
+      voucher_type: 'Telkom',
+      retailer_name: retailer.name,
+      amount: 10,
+      supplier_commission_pct: 5,
+      retailer_commission: 0.02,
+      agent_commission: 0.03,
+      profit: 0.45,
+    },
+    // ... add more mock sales in the same shape as needed ...
+  ];
+  const voucherTypes = Array.from(new Set(salesData.map(s => s.voucher_type)));
+  const retailerNames = [retailer.name];
 
   return (
     <div className="space-y-6">
-      {/* Confetti effect on successful sale */}
-      {showConfetti && <ConfettiOverlay />}
-
       {/* Header */}
       <div className="relative">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-            Sell Vouchers
-          </h1>
-          <p className="text-muted-foreground">
-            Select a voucher category and value to make a sale.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Retailer Dashboard</h1>
+          <p className="text-muted-foreground">View your sales performance and statistics</p>
         </div>
-        <div className="absolute top-0 right-0">
+        <div className="absolute right-0 top-0">
           <TerminalSelector />
         </div>
       </div>
 
-      {/* Balance Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* Stats Tiles */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsTile
-          label="Available Balance"
-          value={`R ${retailer.balance.toFixed(2)}`}
-          icon={Wallet}
-          intent="success"
-          subtitle="Current account balance"
+          label="Today's Sales"
+          value={`R ${todaySales.toFixed(2)}`}
+          icon={Activity}
+          intent="primary"
+          subtitle={`${todaySalesCount} transactions`}
         />
         <StatsTile
-          label="Credit Used"
-          value={`R ${retailer.credit.toFixed(2)}`}
-          icon={CreditCard}
-          intent="warning"
-          subtitle="Active credit amount"
+          label="Weekly Sales"
+          value={`R ${weekSales.toFixed(2)}`}
+          icon={Calendar}
+          intent="success"
+          subtitle="Last 7 days"
+        />
+        <StatsTile
+          label="Monthly Sales"
+          value={`R ${monthSales.toFixed(2)}`}
+          icon={ShoppingBag}
+          intent="info"
+          subtitle="Current month"
         />
         <StatsTile
           label="Commission Earned"
           value={`R ${retailer.commission.toFixed(2)}`}
           icon={Percent}
-          intent="info"
+          intent="warning"
           subtitle="Total earned to date"
         />
       </div>
 
-      {/* Voucher Categories Grid */}
-      {!selectedCategory ? (
-        <div>
-          <h2 className="mb-4 text-lg font-medium">Select Voucher Type</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-            {voucherCategories.map((category) => (
-              <VoucherCategory
-                key={category.name}
-                name={category.name}
-                icon={category.icon}
-                color={category.color}
-                onClick={() => handleCategorySelect(category.name)}
-              />
-            ))}
-          </div>
-        </div>
-      ) : (
-        // Voucher Values Grid
-        <div>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-medium">
-              Select {selectedCategory} Voucher Value
-            </h2>
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className="rounded-md px-3 py-1 text-sm text-muted-foreground hover:bg-muted"
-            >
-              ← Back to Categories
-            </button>
-          </div>
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <RetailerSalesChart data={salesTimeData} />
+        <VoucherTypeChart data={voucherTypeData} />
+      </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {getVouchersForCategory(selectedCategory).map((voucher) => (
-              <motion.button
-                key={voucher.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleValueSelect(voucher.value)}
-                className="flex flex-col items-center justify-center rounded-lg border border-border p-6 text-center shadow-sm hover:border-primary/20 hover:shadow-md"
-              >
-                <div className="mb-2 text-sm text-muted-foreground">
-                  {voucher.provider}
-                </div>
-                <div className="text-2xl font-bold">
-                  R {voucher.value.toFixed(2)}
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Confirm Sale Dialog */}
-      {showConfirmDialog && (
-        <>
-          <div
-            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
-            onClick={() => setShowConfirmDialog(false)}
-          />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card p-6 shadow-lg">
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 rounded-full bg-primary/10 p-3 text-primary">
-                <CreditCard className="h-6 w-6" />
-              </div>
-              <h2 className="mb-1 text-xl font-semibold">Confirm Sale</h2>
-              <p className="mb-4 text-sm text-muted-foreground">
-                You're about to sell the following voucher:
-              </p>
-
-              <div className="mb-6 w-full rounded-lg bg-muted p-4">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Type:</span>
-                  <span className="font-medium">{selectedCategory}</span>
-                </div>
-                <div className="flex justify-between border-t border-border py-2">
-                  <span className="text-sm text-muted-foreground">Value:</span>
-                  <span className="font-medium">
-                    R {selectedValue?.toFixed(2)}
-                  </span>
-                </div>
-                {selectedCategory === "Mobile" && (
-                  <div className="flex justify-between border-t border-border py-2">
-                    <span className="text-sm text-muted-foreground">
-                      Provider:
-                    </span>
-                    <span className="font-medium">
-                      {getVouchersForCategory(selectedCategory)[0]?.provider}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-border py-2">
-                  <span className="text-sm text-muted-foreground">
-                    Commission:
-                  </span>
-                  <span className="font-medium text-green-500">
-                    R {((selectedValue || 0) * 0.02).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex w-full flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
-                <button
-                  onClick={() => setShowConfirmDialog(false)}
-                  className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-muted"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmSale}
-                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-                >
-                  Complete Sale
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Success Toast */}
-      {showToast && (
-        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5 fade-in-20 max-w-md rounded-lg border border-green-500/20 bg-green-500/10 p-4 text-green-500 shadow-lg">
-          <div className="flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="mr-2 h-5 w-5"
-            >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-            <div>
-              <h4 className="font-medium">Sale Successful!</h4>
-              <p className="text-sm">
-                {selectedCategory} voucher for R {selectedValue?.toFixed(2)}{" "}
-                sold successfully.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Recent Sales Table */}
+      <SalesTable salesData={salesData} voucherTypes={voucherTypes} retailerNames={retailerNames} />
     </div>
   );
 }

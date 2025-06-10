@@ -81,7 +81,7 @@ export function Layout({ children, role = 'admin' }: LayoutProps) {
   const getNavItems = () => {
     return [
       {
-        name: 'Sell',
+        name: 'Dashboard',
         href: '/retailer',
         icon: ShoppingCart,
       },
