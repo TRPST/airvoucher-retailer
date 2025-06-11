@@ -8,6 +8,14 @@ import { retailers, vouchers } from '@/lib/MockData';
 import { cn } from '@/utils/cn';
 import useRequireRole from '@/hooks/useRequireRole';
 import { SalesTable, SalesReport } from '../../components/retailer/SalesTable';
+import {
+  fetchMyRetailer,
+  fetchTerminals,
+  fetchSalesHistory,
+  type RetailerProfile,
+  type Terminal,
+  type Sale,
+} from '@/actions/retailerActions';
 
 // Type definitions for chart data
 type SalesDataPoint = {
@@ -56,10 +64,54 @@ const VoucherTypeChart = ({ data }: { data: VoucherTypeSales[] }) => (
 
 export default function RetailerDashboard() {
   // Protect this route - only allow retailer role
-  const { isLoading } = useRequireRole('retailer');
+  const { isLoading, user } = useRequireRole('retailer');
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+  // State for real data
+  const [retailer, setRetailer] = React.useState<RetailerProfile | null>(null);
+  const [terminals, setTerminals] = React.useState<Terminal[]>([]);
+  const [salesData, setSalesData] = React.useState<Sale[]>([]);
+  const [isDataLoading, setIsDataLoading] = React.useState(true);
+  const [dataError, setDataError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      setIsDataLoading(true);
+      setDataError(null);
+      try {
+        // 1. Fetch retailer profile
+        const { data: retailerProfile, error: retailerError } = await fetchMyRetailer(user.id);
+        if (retailerError || !retailerProfile) throw new Error('Could not load retailer profile');
+        setRetailer(retailerProfile);
+
+        // 2. Fetch terminals for this retailer
+        const { data: terminalList, error: terminalError } = await fetchTerminals(
+          retailerProfile.id
+        );
+        if (terminalError || !terminalList) throw new Error('Could not load terminals');
+        setTerminals(terminalList);
+
+        // 3. Fetch sales for all terminals
+        let allSales: Sale[] = [];
+        for (const terminal of terminalList) {
+          const { data: terminalSales, error: salesError } = await fetchSalesHistory({
+            terminalId: terminal.id,
+          });
+          if (salesError) throw new Error('Could not load sales');
+          if (terminalSales) allSales = allSales.concat(terminalSales);
+        }
+        setSalesData(allSales);
+      } catch (err) {
+        setDataError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setIsDataLoading(false);
+      }
+    };
+    if (!isLoading) loadData();
+  }, [user, isLoading]);
+
+  // Loading and error states
+  if (isLoading || isDataLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -67,58 +119,40 @@ export default function RetailerDashboard() {
       </div>
     );
   }
-
-  // Get the first active retailer for demo purposes
-  const retailer = retailers.find(r => r.status === 'active') || retailers[0];
-
-  // Mock data for the retailer dashboard
-  // In a real application, these would come from API calls
-  const todaySales = 2350.75;
-  const todaySalesCount = 15;
-  const weekSales = 15420.3;
-  const monthSales = 42689.5;
-
-  // Mock sales data for charts
-  const salesTimeData: SalesDataPoint[] = [
-    { date: '2023-05-01', amount: 1200 },
-    { date: '2023-05-02', amount: 1500 },
-    // More data points would be here
-  ];
-
-  const voucherTypeData: VoucherTypeSales[] = [
-    { type: 'Mobile', value: 5200 },
-    { type: 'OTT', value: 3100 },
-    { type: 'Hollywoodbets', value: 2400 },
-    // More data here
-  ];
-
-  // Mock sales data for the table
-  const recentSales = [
-    { date: 'May 12, 2023, 14:25', type: 'Mobile', amount: 200, commission: 10 },
-    { date: 'May 12, 2023, 11:30', type: 'OTT', amount: 150, commission: 7.5 },
-    { date: 'May 11, 2023, 17:15', type: 'Hollywoodbets', amount: 300, commission: 15 },
-    { date: 'May 11, 2023, 09:45', type: 'Ringa', amount: 120, commission: 6 },
-    { date: 'May 10, 2023, 16:20', type: 'Mobile', amount: 250, commission: 12.5 },
-  ];
+  if (dataError) {
+    return <div className="p-8 text-center text-red-500">{dataError}</div>;
+  }
 
   // Prepare data for SalesTable
-  // Convert recentSales to SalesReport[] shape for demo
-  const salesData: SalesReport[] = [
-    {
-      id: '1',
-      created_at: '2025-06-05T19:56:00Z',
-      voucher_type: 'Telkom',
-      retailer_name: retailer.name,
-      amount: 10,
-      supplier_commission_pct: 5,
-      retailer_commission: 0.02,
-      agent_commission: 0.03,
-      profit: 0.45,
-    },
-    // ... add more mock sales in the same shape as needed ...
-  ];
   const voucherTypes = Array.from(new Set(salesData.map(s => s.voucher_type)));
-  const retailerNames = [retailer.name];
+  const retailerNames = retailer ? [retailer.name] : [];
+
+  // Stats calculations (example: today, week, month, commission)
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const weekAgo = new Date(now);
+  weekAgo.setDate(now.getDate() - 7);
+  const monthAgo = new Date(now);
+  monthAgo.setDate(now.getDate() - 30);
+
+  const todaySales = salesData.filter(s => s.created_at.startsWith(todayStr));
+  const weekSales = salesData.filter(s => new Date(s.created_at) >= weekAgo);
+  const monthSales = salesData.filter(s => new Date(s.created_at) >= monthAgo);
+  const commissionEarned = salesData.reduce((sum, s) => sum + (s.retailer_commission || 0), 0);
+
+  // Map salesData (Sale[]) to SalesReport[] for the SalesTable
+  const salesTableData: SalesReport[] = salesData.map(s => ({
+    id: s.id,
+    created_at: s.created_at,
+    voucher_type: s.voucher_type,
+    retailer_name: retailer ? retailer.name : '',
+    amount: s.sale_amount ?? s.voucher_amount ?? 0,
+    terminal_name: s.terminal_name || '',
+    supplier_commission_pct: 0, // Not available in Sale, set to 0 or fetch if needed
+    retailer_commission: s.retailer_commission ?? 0,
+    agent_commission: 0, // Not available in Sale, set to 0 or fetch if needed
+    profit: 0, // Not available in Sale, set to 0 or fetch if needed
+  }));
 
   return (
     <div className="space-y-6">
@@ -128,51 +162,52 @@ export default function RetailerDashboard() {
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Retailer Dashboard</h1>
           <p className="text-muted-foreground">View your sales performance and statistics</p>
         </div>
-        <div className="absolute right-0 top-0">
-          <TerminalSelector />
-        </div>
       </div>
 
       {/* Stats Tiles */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsTile
           label="Today's Sales"
-          value={`R ${todaySales.toFixed(2)}`}
+          value={`R ${todaySales.reduce((sum, s) => sum + (s.sale_amount || 0), 0).toFixed(2)}`}
           icon={Activity}
           intent="primary"
-          subtitle={`${todaySalesCount} transactions`}
+          subtitle={`${todaySales.length} transactions`}
         />
         <StatsTile
           label="Weekly Sales"
-          value={`R ${weekSales.toFixed(2)}`}
+          value={`R ${weekSales.reduce((sum, s) => sum + (s.sale_amount || 0), 0).toFixed(2)}`}
           icon={Calendar}
           intent="success"
           subtitle="Last 7 days"
         />
         <StatsTile
           label="Monthly Sales"
-          value={`R ${monthSales.toFixed(2)}`}
+          value={`R ${monthSales.reduce((sum, s) => sum + (s.sale_amount || 0), 0).toFixed(2)}`}
           icon={ShoppingBag}
           intent="info"
           subtitle="Current month"
         />
         <StatsTile
           label="Commission Earned"
-          value={`R ${retailer.commission.toFixed(2)}`}
+          value={`R ${commissionEarned.toFixed(2)}`}
           icon={Percent}
           intent="warning"
           subtitle="Total earned to date"
         />
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <RetailerSalesChart data={salesTimeData} />
-        <VoucherTypeChart data={voucherTypeData} />
-      </div>
+      {/* Charts Section (still using mock/placeholder for now) */}
+      {/* <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <RetailerSalesChart data={[]} />
+        <VoucherTypeChart data={[]} />
+      </div> */}
 
       {/* Recent Sales Table */}
-      <SalesTable salesData={salesData} voucherTypes={voucherTypes} retailerNames={retailerNames} />
+      <SalesTable
+        salesData={salesTableData}
+        voucherTypes={voucherTypes}
+        retailerNames={retailerNames}
+      />
     </div>
   );
 }

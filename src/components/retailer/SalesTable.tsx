@@ -20,6 +20,7 @@ export interface SalesReport {
   voucher_type: string;
   retailer_name: string;
   amount: number;
+  terminal_name: string;
   supplier_commission_pct: number;
   retailer_commission: number;
   agent_commission: number;
@@ -36,12 +37,15 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
   // Table state
   const [searchTerm, setSearchTerm] = useState('');
   const [voucherTypeFilter, setVoucherTypeFilter] = useState<string>('all');
-  const [retailerNameFilter, setRetailerNameFilter] = useState<string>('all');
+  const [terminalFilter, setTerminalFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Get unique terminal names for filter dropdown
+  const terminalNames = Array.from(new Set(salesData.map(s => s.terminal_name).filter(Boolean)));
 
   // Filter and sort sales data
   const filteredAndSortedSales = (() => {
@@ -63,9 +67,9 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
       filtered = filtered.filter(sale => sale.voucher_type === voucherTypeFilter);
     }
 
-    // Apply retailer name filter
-    if (retailerNameFilter !== 'all') {
-      filtered = filtered.filter(sale => sale.retailer_name === retailerNameFilter);
+    // Apply terminal filter
+    if (terminalFilter !== 'all') {
+      filtered = filtered.filter(sale => sale.terminal_name === terminalFilter);
     }
 
     // Apply sorting
@@ -90,6 +94,10 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
           aValue = a.retailer_name || '';
           bValue = b.retailer_name || '';
           break;
+        case 'terminal_name':
+          aValue = a.terminal_name || '';
+          bValue = b.terminal_name || '';
+          break;
         default:
           return 0;
       }
@@ -109,12 +117,6 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
 
   // Table data formatting
   const tableData = paginatedSales.map(sale => {
-    // Use the profit field directly from the database
-    const airVoucherProfit = sale.profit || 0;
-
-    // Calculate supplier commission amount
-    const supplierCommissionAmount = sale.amount * (sale.supplier_commission_pct / 100);
-
     return {
       Date: new Date(sale.created_at).toLocaleString('en-ZA', {
         day: 'numeric',
@@ -142,18 +144,10 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
           <span>{sale.voucher_type || 'Unknown'}</span>
         </div>
       ),
-      Amount: `R ${sale.amount.toFixed(2)}`,
+      SaleAmount: `R ${sale.amount.toFixed(2)}`,
       Retailer: sale.retailer_name || 'Unknown',
-      'Supp. Com.': `R ${supplierCommissionAmount.toFixed(2)}`,
-      'Ret. Com.': `R ${sale.retailer_commission.toFixed(2)}`,
-      'Agent Com.': `R ${sale.agent_commission.toFixed(2)}`,
-      'AV Profit': (
-        <span
-          className={cn('font-medium', airVoucherProfit >= 0 ? 'text-green-600' : 'text-red-600')}
-        >
-          R {airVoucherProfit.toFixed(2)}
-        </span>
-      ),
+      Terminal: sale.terminal_name || '',
+      Commission: `R ${sale.retailer_commission.toFixed(2)}`,
     };
   });
 
@@ -208,10 +202,10 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
         <SalesFilterPanel
           voucherTypeFilter={voucherTypeFilter}
           setVoucherTypeFilter={setVoucherTypeFilter}
-          retailerNameFilter={retailerNameFilter}
-          setRetailerNameFilter={setRetailerNameFilter}
+          terminalFilter={terminalFilter}
+          setTerminalFilter={setTerminalFilter}
           voucherTypes={voucherTypes}
-          retailerNames={retailerNames}
+          terminalNames={terminalNames}
         />
       )}
 
@@ -255,7 +249,7 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
                       onClick={() => handleSort('amount')}
                       className="flex items-center gap-1 hover:text-foreground"
                     >
-                      Amount
+                      Sale Amount
                       {sortField === 'amount' &&
                         (sortDirection === 'asc' ? (
                           <ChevronUp className="h-3 w-3" />
@@ -264,13 +258,14 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
                         ))}
                     </button>
                   </th>
+
                   <th className="whitespace-nowrap px-4 py-3">
                     <button
-                      onClick={() => handleSort('retailer_name')}
+                      onClick={() => handleSort('terminal_name')}
                       className="flex items-center gap-1 hover:text-foreground"
                     >
-                      Retailer
-                      {sortField === 'retailer_name' &&
+                      Terminal
+                      {sortField === 'terminal_name' &&
                         (sortDirection === 'asc' ? (
                           <ChevronUp className="h-3 w-3" />
                         ) : (
@@ -278,10 +273,7 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
                         ))}
                     </button>
                   </th>
-                  <th className="whitespace-nowrap px-3 py-3">Supp. Com.</th>
-                  <th className="whitespace-nowrap px-3 py-3">Ret. Com.</th>
-                  <th className="whitespace-nowrap px-3 py-3">Agent Com.</th>
-                  <th className="whitespace-nowrap px-3 py-3">AV Profit</th>
+                  <th className="whitespace-nowrap px-3 py-3">Commission</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -293,19 +285,12 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
                     <td className="whitespace-nowrap px-4 py-3 text-sm">{row.Date}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm">{row.Type}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm font-medium">
-                      {row.Amount}
+                      {row.SaleAmount}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm">{row.Retailer}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sm font-medium text-orange-600">
-                      {row['Supp. Com.']}
-                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm">{row.Terminal}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-sm font-medium text-green-600">
-                      {row['Ret. Com.']}
+                      {row['Commission']}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sm font-medium text-blue-600">
-                      {row['Agent Com.']}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sm">{row['AV Profit']}</td>
                   </tr>
                 ))}
               </tbody>

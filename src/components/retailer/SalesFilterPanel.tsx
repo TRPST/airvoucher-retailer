@@ -3,19 +3,19 @@ import { motion } from 'framer-motion';
 interface SalesFilterPanelProps {
   voucherTypeFilter: string;
   setVoucherTypeFilter: (value: string) => void;
-  retailerNameFilter: string;
-  setRetailerNameFilter: (value: string) => void;
+  terminalFilter: string;
+  setTerminalFilter: (value: string) => void;
   voucherTypes: string[];
-  retailerNames: string[];
+  terminalNames: string[];
 }
 
 export function SalesFilterPanel({
   voucherTypeFilter,
   setVoucherTypeFilter,
-  retailerNameFilter,
-  setRetailerNameFilter,
+  terminalFilter,
+  setTerminalFilter,
   voucherTypes,
-  retailerNames,
+  terminalNames,
 }: SalesFilterPanelProps) {
   return (
     <motion.div
@@ -45,17 +45,17 @@ export function SalesFilterPanel({
           </select>
         </div>
         <div>
-          <label htmlFor="retailerNameFilter" className="mb-1 block text-sm font-medium">
-            Retailer
+          <label htmlFor="terminalFilter" className="mb-1 block text-sm font-medium">
+            Terminal
           </label>
           <select
-            id="retailerNameFilter"
+            id="terminalFilter"
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            value={retailerNameFilter}
-            onChange={e => setRetailerNameFilter(e.target.value)}
+            value={terminalFilter}
+            onChange={e => setTerminalFilter(e.target.value)}
           >
-            <option value="all">All Retailers</option>
-            {retailerNames.map(name => (
+            <option value="all">All Terminals</option>
+            {terminalNames.map(name => (
               <option key={name} value={name}>
                 {name}
               </option>

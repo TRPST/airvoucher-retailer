@@ -92,5 +92,5 @@ export function processVoucherTypeData(salesData: SalesReport[]): VoucherTypeSal
 }
 
 // Define sorting and filtering types
-export type SortField = 'date' | 'voucher_type' | 'amount' | 'retailer_name';
+export type SortField = 'date' | 'voucher_type' | 'amount' | 'retailer_name' | 'terminal_name';
 export type SortDirection = 'asc' | 'desc';
