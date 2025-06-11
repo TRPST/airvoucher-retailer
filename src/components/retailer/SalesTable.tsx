@@ -122,7 +122,6 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
 
   // Table data formatting
   const tableData = paginatedSales.map(sale => {
-    console.log(sale);
     return {
       Date: new Date(sale.created_at).toLocaleString('en-ZA', {
         day: 'numeric',

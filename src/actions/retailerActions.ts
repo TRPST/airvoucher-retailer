@@ -31,6 +31,7 @@ export type Terminal = {
   last_active: string | null;
   status: 'active' | 'inactive';
   auth_user_id: string | null;
+  has_sales: boolean;
   user_profile?: {
     full_name: string;
     email: string;
@@ -687,7 +688,8 @@ export async function fetchTerminals(retailerId: string): Promise<{
   const supabase = createClient();
 
   try {
-    const { data, error } = await supabase
+    // First get all terminals
+    const { data: terminals, error: terminalsError } = await supabase
       .from('terminals')
       .select(
         `
@@ -702,31 +704,41 @@ export async function fetchTerminals(retailerId: string): Promise<{
       .eq('retailer_id', retailerId)
       .order('name');
 
-    if (error) {
-      return { data: null, error };
+    if (terminalsError) {
+      return { data: null, error: terminalsError };
     }
 
-    // Transform the data to match the Terminal type
-    const terminals = data.map(terminal => {
-      const userProfile = Array.isArray(terminal.user_profile)
-        ? terminal.user_profile[0]
-        : terminal.user_profile;
-      return {
-        id: terminal.id,
-        name: terminal.name,
-        last_active: terminal.last_active,
-        status: terminal.status,
-        auth_user_id: terminal.auth_user_id,
-        user_profile: userProfile
-          ? {
-              full_name: userProfile.full_name,
-              email: userProfile.email,
-            }
-          : null,
-      };
-    });
+    // For each terminal, check if it has any sales
+    const terminalsWithSales = await Promise.all(
+      terminals.map(async terminal => {
+        const { data: sales } = await supabase
+          .from('sales')
+          .select('id')
+          .eq('terminal_id', terminal.id)
+          .limit(1);
 
-    return { data: terminals, error: null };
+        const userProfile = Array.isArray(terminal.user_profile)
+          ? terminal.user_profile[0]
+          : terminal.user_profile;
+
+        return {
+          id: terminal.id,
+          name: terminal.name,
+          last_active: terminal.last_active,
+          status: terminal.status,
+          auth_user_id: terminal.auth_user_id,
+          has_sales: Boolean(sales?.length),
+          user_profile: userProfile
+            ? {
+                full_name: userProfile.full_name,
+                email: userProfile.email,
+              }
+            : null,
+        };
+      })
+    );
+
+    return { data: terminalsWithSales, error: null };
   } catch (err) {
     return {
       data: null,
@@ -783,6 +795,50 @@ export async function createTerminalForRetailer({
     };
   } catch (err) {
     console.error('Unexpected error in createTerminalForRetailer:', err);
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error(String(err)),
+    };
+  }
+}
+
+/**
+ * Delete a terminal
+ */
+export async function deleteTerminal(terminalId: string): Promise<{
+  data: null;
+  error: PostgrestError | Error | null;
+}> {
+  const supabase = createClient();
+
+  try {
+    // First check if the terminal has any sales
+    const { data: sales, error: salesError } = await supabase
+      .from('sales')
+      .select('id')
+      .eq('terminal_id', terminalId)
+      .limit(1);
+
+    if (salesError) {
+      return { data: null, error: salesError };
+    }
+
+    if (sales && sales.length > 0) {
+      return {
+        data: null,
+        error: new Error('Cannot delete terminal with existing sales history'),
+      };
+    }
+
+    // If no sales found, proceed with deletion
+    const { error } = await supabase.from('terminals').delete().eq('id', terminalId);
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data: null, error: null };
+  } catch (err) {
     return {
       data: null,
       error: err instanceof Error ? err : new Error(String(err)),

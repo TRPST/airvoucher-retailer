@@ -48,7 +48,7 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider attribute="class">
       <ToastProvider>
-        <Layout>
+        <Layout role="retailer">
           <Component {...pageProps} />
         </Layout>
       </ToastProvider>

@@ -8,13 +8,25 @@ import {
   CheckCircle,
   XCircle,
   User,
+  Trash2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 import {
   fetchMyRetailer,
   fetchTerminals,
+  deleteTerminal,
   type RetailerProfile,
   type Terminal as TerminalType,
 } from '@/actions/retailerActions';
@@ -35,6 +47,11 @@ export default function RetailerTerminals() {
 
   // State for add terminal dialog
   const [showAddDialog, setShowAddDialog] = React.useState(false);
+
+  // State for terminal deletion
+  const [terminalToDelete, setTerminalToDelete] = React.useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
 
   // Load retailer and terminals data
   React.useEffect(() => {
@@ -110,6 +127,28 @@ export default function RetailerTerminals() {
       console.error('Error toggling terminal status:', err);
       // Show error to user
       alert(`Failed to update terminal: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  // Handle terminal deletion
+  const handleDeleteTerminal = async (terminalId: string) => {
+    try {
+      setIsDeleting(true);
+      setDeleteError(null);
+      const { error } = await deleteTerminal(terminalId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update terminals list
+      setTerminals(prev => prev.filter(t => t.id !== terminalId));
+      setTerminalToDelete(null);
+    } catch (err) {
+      console.error('Error deleting terminal:', err);
+      setDeleteError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -194,11 +233,29 @@ export default function RetailerTerminals() {
                     </div>
                   </div>
                 </div>
-                <Switch
-                  checked={terminal.status === 'active'}
-                  onCheckedChange={() => handleToggleStatus(terminal.id, terminal.status)}
-                  className="data-[state=checked]:bg-green-500"
-                />
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={terminal.status === 'active'}
+                    onCheckedChange={() => handleToggleStatus(terminal.id, terminal.status)}
+                    className="data-[state=checked]:bg-green-500"
+                  />
+                  <button
+                    onClick={() => setTerminalToDelete(terminal.id)}
+                    className={cn(
+                      'rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
+                      terminal.has_sales &&
+                        'cursor-not-allowed opacity-50 hover:bg-transparent hover:text-muted-foreground'
+                    )}
+                    title={
+                      terminal.has_sales
+                        ? 'Cannot delete terminal with sales history'
+                        : 'Delete terminal'
+                    }
+                    disabled={terminal.has_sales}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
               <div className="pt-4">
                 {terminal.user_profile && (
@@ -254,6 +311,47 @@ export default function RetailerTerminals() {
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!terminalToDelete}
+        onOpenChange={() => {
+          setTerminalToDelete(null);
+          setDeleteError(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Terminal</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteError ? (
+                <div className="mt-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  {deleteError}
+                </div>
+              ) : (
+                'Are you sure you want to delete this terminal? This action cannot be undone.'
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => terminalToDelete && handleDeleteTerminal(terminalToDelete)}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add Terminal Dialog */}
       {retailer && (

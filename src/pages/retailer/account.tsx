@@ -108,11 +108,11 @@ export default function RetailerAccount() {
           subtitle="Current account balance"
         />
         <StatsTile
-          label="Credit Used"
-          value={`R ${retailer.credit_used.toFixed(2)}`}
+          label="Available Credit"
+          value={`R ${(retailer.credit_limit - retailer.credit_used).toFixed(2)}`}
           icon={CreditCard}
           intent="warning"
-          subtitle="Active credit amount"
+          subtitle={`R ${retailer.credit_used.toFixed(2)} used of R ${retailer.credit_limit.toFixed(2)} limit`}
         />
         <StatsTile
           label="Pending Commission"
@@ -198,26 +198,24 @@ export default function RetailerAccount() {
               <p className="font-medium">{bankDetails.accountNumber}</p>
             </div>
 
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Bank</p>
-                <p className="font-medium">{bankDetails.bankName}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Branch Code</p>
-                <p className="font-medium">{bankDetails.branchCode}</p>
-              </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Bank</p>
+              <p className="font-medium">{bankDetails.bankName}</p>
             </div>
 
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Account Type</p>
-                <p className="font-medium">{bankDetails.accountType}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Reference</p>
-                <p className="font-medium">{bankDetails.reference}</p>
-              </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Branch Code</p>
+              <p className="font-medium">{bankDetails.branchCode}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground">Account Type</p>
+              <p className="font-medium">{bankDetails.accountType}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground">Reference</p>
+              <p className="font-medium">{bankDetails.reference}</p>
             </div>
           </div>
         </motion.div>
