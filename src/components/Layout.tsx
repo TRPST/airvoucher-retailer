@@ -412,7 +412,7 @@ export function Layout({ children, role = 'retailer' }: LayoutProps) {
       </div>
 
       {/* Main content */}
-      <main className="flex-1 md:pl-64 md:pt-16">
+      <main className="flex-1 md:pl-64">
         <div className="mx-auto max-w-7xl p-4 pb-20 md:p-6 md:pb-4 lg:p-8 lg:pb-8">{children}</div>
       </main>
 
