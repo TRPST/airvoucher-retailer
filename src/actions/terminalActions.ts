@@ -1,6 +1,6 @@
-import { createClient } from "@/utils/supabase/client";
-import { PostgrestError } from "@supabase/supabase-js";
-import { VoucherSaleReceipt, completeVoucherSale } from "@/lib/sale/completeVoucherSale";
+import { createClient } from '@/utils/supabase/client';
+import { PostgrestError } from '@supabase/supabase-js';
+//import { VoucherSaleReceipt, completeVoucherSale } from '@/lib/sale/completeVoucherSale';
 
 export type TerminalProfile = {
   id: string;
@@ -31,12 +31,13 @@ export async function fetchTerminalProfile(userId: string): Promise<{
   error: PostgrestError | Error | null;
 }> {
   const supabase = createClient();
-  
+
   try {
     // First, check if there's an existing terminal for this user profile
     const { data: existingTerminal, error: terminalLookupError } = await supabase
-      .from("terminals")
-      .select(`
+      .from('terminals')
+      .select(
+        `
         id,
         name,
         retailer_id,
@@ -49,8 +50,9 @@ export async function fetchTerminalProfile(userId: string): Promise<{
           credit_used,
           commission_balance
         )
-      `)
-      .eq("id", userId)
+      `
+      )
+      .eq('id', userId)
       .single();
 
     // If we found an existing terminal, return it
@@ -73,8 +75,9 @@ export async function fetchTerminalProfile(userId: string): Promise<{
 
     // If no terminal found, look for a retailer that has this user as their profile
     const { data: retailer, error: retailerError } = await supabase
-      .from("retailers")
-      .select(`
+      .from('retailers')
+      .select(
+        `
         id,
         name,
         balance,
@@ -82,8 +85,9 @@ export async function fetchTerminalProfile(userId: string): Promise<{
         credit_used,
         commission_balance,
         user_profile_id
-      `)
-      .eq("user_profile_id", userId)
+      `
+      )
+      .eq('user_profile_id', userId)
       .single();
 
     if (retailerError) {
@@ -91,7 +95,7 @@ export async function fetchTerminalProfile(userId: string): Promise<{
     }
 
     if (!retailer) {
-      return { data: null, error: new Error("No retailer profile found for user") };
+      return { data: null, error: new Error('No retailer profile found for user') };
     }
 
     // Create a virtual terminal profile based on the retailer data
@@ -125,20 +129,17 @@ export async function fetchAvailableVoucherTypes(): Promise<{
   error: PostgrestError | Error | null;
 }> {
   const supabase = createClient();
-  
+
   try {
-    const { data, error } = await supabase
-      .from("voucher_types")
-      .select("name")
-      .order("name");
-      
+    const { data, error } = await supabase.from('voucher_types').select('name').order('name');
+
     if (error) {
       return { data: null, error };
     }
-    
+
     // Extract unique voucher type names with proper typing
     const uniqueNames = [...new Set(data?.map((item: { name: string }) => item.name) || [])];
-    
+
     return { data: uniqueNames, error: null };
   } catch (err) {
     return {
@@ -156,81 +157,86 @@ export async function fetchVoucherInventoryByType(voucherTypeName: string): Prom
   error: PostgrestError | Error | null;
 }> {
   const supabase = createClient();
-  
+
   try {
     console.log(`Fetching inventory for voucher type: ${voucherTypeName}`);
 
     // Get the voucher type ID(s) for this type name including supplier commission
     const { data: voucherTypes, error: voucherTypesError } = await supabase
-      .from("voucher_types")
-      .select("id, name, supplier_commission_pct")
-      .like("name", `${voucherTypeName}%`);
-      
+      .from('voucher_types')
+      .select('id, name, supplier_commission_pct')
+      .like('name', `${voucherTypeName}%`);
+
     if (voucherTypesError) {
-      console.error("Error fetching voucher type:", voucherTypesError);
+      console.error('Error fetching voucher type:', voucherTypesError);
       return { data: null, error: voucherTypesError };
     }
-    
+
     if (!voucherTypes || voucherTypes.length === 0) {
       console.log(`No voucher type found with name: ${voucherTypeName}`);
       return { data: [], error: null };
     }
-    
+
     // Get the type IDs
     const typeIds = voucherTypes.map((type: { id: string }) => type.id);
-    
+
     // Get all available vouchers of this type with pagination to handle large inventories
     let allVouchers: any[] = [];
     let hasMore = true;
     let page = 0;
     const pageSize = 1000;
-    
+
     while (hasMore) {
       // Query vouchers with status = available
       const { data: pageData, error: pageError } = await supabase
-        .from("voucher_inventory")
-        .select("id, voucher_type_id, amount")
-        .in("voucher_type_id", typeIds)
-        .eq("status", "available")
+        .from('voucher_inventory')
+        .select('id, voucher_type_id, amount')
+        .in('voucher_type_id', typeIds)
+        .eq('status', 'available')
         .range(page * pageSize, (page + 1) * pageSize - 1);
-      
+
       if (pageError) {
         console.error(`Error fetching voucher inventory page ${page}:`, pageError);
         return { data: null, error: pageError };
       }
-      
+
       if (pageData && pageData.length > 0) {
         allVouchers = [...allVouchers, ...pageData];
         page++;
-        console.log(`Fetched page ${page} with ${pageData.length} vouchers. Total: ${allVouchers.length}`);
+        console.log(
+          `Fetched page ${page} with ${pageData.length} vouchers. Total: ${allVouchers.length}`
+        );
       } else {
         hasMore = false;
       }
-      
+
       // Safety check to prevent infinite loops
       if (page > 10) {
-        console.warn("Stopped pagination after 10 pages to prevent infinite loops");
+        console.warn('Stopped pagination after 10 pages to prevent infinite loops');
         hasMore = false;
       }
     }
-    
+
     if (allVouchers.length === 0) {
       console.log(`No available vouchers found for type: ${voucherTypeName}`);
       return { data: [], error: null };
     }
-    
+
     // Group vouchers by amount and count them
-    const amountGroups = new Map<number, { id: string, name: string, count: number, supplier_commission_pct: number }>();
-    
+    const amountGroups = new Map<
+      number,
+      { id: string; name: string; count: number; supplier_commission_pct: number }
+    >();
+
     // Create a mapping of type IDs to names and commission rates
-    const typeDataMap = new Map<string, { name: string, supplier_commission_pct: number }>();
+    const typeDataMap = new Map<string, { name: string; supplier_commission_pct: number }>();
     voucherTypes.forEach((type: { id: string; name: string; supplier_commission_pct: number }) => {
       typeDataMap.set(type.id, {
         name: type.name,
-        supplier_commission_pct: type.supplier_commission_pct || 0
+        supplier_commission_pct: type.supplier_commission_pct || 0,
       });
     });
-    
+
     // Group and count vouchers by amount
     allVouchers.forEach(voucher => {
       const amount = voucher.amount;
@@ -238,33 +244,35 @@ export async function fetchVoucherInventoryByType(voucherTypeName: string): Prom
       const typeData = typeDataMap.get(typeId);
       const typeName = typeData?.name || voucherTypeName;
       const supplierCommissionPct = typeData?.supplier_commission_pct || 0;
-      
+
       if (!amountGroups.has(amount)) {
         amountGroups.set(amount, {
           id: typeId,
           name: typeName,
           count: 1,
-          supplier_commission_pct: supplierCommissionPct
+          supplier_commission_pct: supplierCommissionPct,
         });
       } else {
         const group = amountGroups.get(amount)!;
         group.count++;
       }
     });
-    
+
     // Convert to array and sort by amount
-    const result: VoucherType[] = Array.from(amountGroups.entries()).map(
-      ([amount, group]) => ({
+    const result: VoucherType[] = Array.from(amountGroups.entries())
+      .map(([amount, group]) => ({
         id: group.id,
         name: group.name,
         amount,
         count: group.count,
-        supplier_commission_pct: group.supplier_commission_pct
-      })
-    ).sort((a, b) => a.amount - b.amount);
-    
-    console.log(`Grouped ${allVouchers.length} vouchers into ${result.length} amount options for ${voucherTypeName}`);
-    
+        supplier_commission_pct: group.supplier_commission_pct,
+      }))
+      .sort((a, b) => a.amount - b.amount);
+
+    console.log(
+      `Grouped ${allVouchers.length} vouchers into ${result.length} amount options for ${voucherTypeName}`
+    );
+
     return { data: result, error: null };
   } catch (err) {
     console.error(`Unexpected error in fetchVoucherInventoryByType for ${voucherTypeName}:`, err);
@@ -291,13 +299,13 @@ export async function fetchRetailerCommissionData({
   error: PostgrestError | Error | null;
 }> {
   const supabase = createClient();
-  
+
   try {
     // Get retailer's commission group
     const { data: retailer, error: retailerError } = await supabase
-      .from("retailers")
-      .select("commission_group_id, commission_groups!inner(name)")
-      .eq("id", retailerId)
+      .from('retailers')
+      .select('commission_group_id, commission_groups!inner(name)')
+      .eq('id', retailerId)
       .single();
 
     if (retailerError) {
@@ -306,10 +314,10 @@ export async function fetchRetailerCommissionData({
 
     // Get commission rate for this group and voucher type
     const { data: rateData, error: rateError } = await supabase
-      .from("commission_group_rates")
-      .select("retailer_pct")
-      .eq("commission_group_id", retailer.commission_group_id)
-      .eq("voucher_type_id", voucherTypeId)
+      .from('commission_group_rates')
+      .select('retailer_pct')
+      .eq('commission_group_id', retailer.commission_group_id)
+      .eq('voucher_type_id', voucherTypeId)
       .single();
 
     if (rateError) {
@@ -318,9 +326,9 @@ export async function fetchRetailerCommissionData({
 
     // Get voucher type supplier commission
     const { data: voucherType, error: voucherTypeError } = await supabase
-      .from("voucher_types")
-      .select("supplier_commission_pct")
-      .eq("id", voucherTypeId)
+      .from('voucher_types')
+      .select('supplier_commission_pct')
+      .eq('id', voucherTypeId)
       .single();
 
     if (voucherTypeError) {
@@ -335,7 +343,7 @@ export async function fetchRetailerCommissionData({
       data: {
         rate: rateData.retailer_pct,
         amount: retailerCommission,
-        groupName: (retailer.commission_groups as any)?.name || "Unknown",
+        groupName: (retailer.commission_groups as any)?.name || 'Unknown',
       },
       error: null,
     };
@@ -367,15 +375,15 @@ export async function sellVoucher({
   error: PostgrestError | Error | null;
 }> {
   const supabase = createClient();
-  
+
   try {
     // Step 1: Get one available voucher of the requested type with the correct amount
     const { data: voucher, error: voucherError } = await supabase
-      .from("voucher_inventory")
-      .select("id, amount, pin, serial_number, voucher_type_id")
-      .eq("voucher_type_id", voucherTypeId)
-      .eq("amount", amount)
-      .eq("status", "available")
+      .from('voucher_inventory')
+      .select('id, amount, pin, serial_number, voucher_type_id')
+      .eq('voucher_type_id', voucherTypeId)
+      .eq('amount', amount)
+      .eq('status', 'available')
       .limit(1)
       .single();
 
@@ -385,9 +393,9 @@ export async function sellVoucher({
 
     // Step 2: Get retailer information using the userId (terminalId) to find the retailer
     const { data: retailer, error: retailerError } = await supabase
-      .from("retailers")
-      .select("id, name, agent_profile_id, commission_group_id")
-      .eq("user_profile_id", terminalId)
+      .from('retailers')
+      .select('id, name, agent_profile_id, commission_group_id')
+      .eq('user_profile_id', terminalId)
       .single();
 
     if (retailerError) {
@@ -396,24 +404,24 @@ export async function sellVoucher({
 
     // Step 3: Get commission rates for this retailer's group and voucher type
     const { data: commissionRate, error: rateError } = await supabase
-      .from("commission_group_rates")
-      .select("retailer_pct, agent_pct")
-      .eq("commission_group_id", retailer.commission_group_id)
-      .eq("voucher_type_id", voucherTypeId)
+      .from('commission_group_rates')
+      .select('retailer_pct, agent_pct')
+      .eq('commission_group_id', retailer.commission_group_id)
+      .eq('voucher_type_id', voucherTypeId)
       .single();
 
     if (rateError) {
       return {
         data: null,
-        error: new Error("Commission rate not found for this voucher type"),
+        error: new Error('Commission rate not found for this voucher type'),
       };
     }
 
     // Step 4: Get voucher type name
     const { data: voucherType, error: voucherTypeError } = await supabase
-      .from("voucher_types")
-      .select("name")
-      .eq("id", voucherTypeId)
+      .from('voucher_types')
+      .select('name')
+      .eq('id', voucherTypeId)
       .single();
 
     if (voucherTypeError) {
@@ -438,16 +446,16 @@ export async function sellVoucher({
     // If we don't have receipt data from the RPC function yet,
     // we can generate a basic receipt with the available info
     let receipt: VoucherSaleReceipt | null = receiptData;
-    
+
     if (!receipt && receiptData?.sale_id) {
       // Generate a ref number based on timestamp if not provided
       const refNumber = `REF-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      
+
       // Create basic receipt with available data
       receipt = {
         sale_id: receiptData.sale_id,
         voucher_code: voucher.pin,
-        serial_number: voucher.serial_number || "",
+        serial_number: voucher.serial_number || '',
         ref_number: refNumber,
         retailer_name: retailer.name,
         terminal_name: `${retailer.name} Terminal`,
@@ -457,13 +465,13 @@ export async function sellVoucher({
         retailer_commission: voucher.amount * commissionRate.retailer_pct,
         agent_commission: voucher.amount * commissionRate.agent_pct,
         timestamp: new Date().toISOString(),
-        instructions: "Dial *136*(voucher number)#",
+        instructions: 'Dial *136*(voucher number)#',
       };
     }
 
     return {
       data: {
-        sale_id: receiptData?.sale_id || "",
+        sale_id: receiptData?.sale_id || '',
         voucher: {
           pin: voucher.pin,
           serial_number: voucher.serial_number,
@@ -485,11 +493,12 @@ export async function fetchSalesHistory(terminalId: string): Promise<{
   error: PostgrestError | Error | null;
 }> {
   const supabase = createClient();
-  
+
   try {
     const { data, error } = await supabase
-      .from("sales")
-      .select(`
+      .from('sales')
+      .select(
+        `
         id,
         sale_amount,
         retailer_commission,
@@ -503,9 +512,10 @@ export async function fetchSalesHistory(terminalId: string): Promise<{
             name
           )
         )
-      `)
-      .eq("terminal_id", terminalId) // Use the userId as the terminal_id
-      .order("created_at", { ascending: false });
+      `
+      )
+      .eq('terminal_id', terminalId) // Use the userId as the terminal_id
+      .order('created_at', { ascending: false });
 
     if (error) {
       return { data: null, error };
@@ -518,4 +528,103 @@ export async function fetchSalesHistory(terminalId: string): Promise<{
       error: err instanceof Error ? err : new Error(String(err)),
     };
   }
-} 
+}
+
+/**
+ * Create a new terminal
+ */
+export async function createTerminal({
+  name,
+  contact_person,
+  retailer_id,
+  email,
+  password,
+}: {
+  name: string;
+  contact_person: string;
+  retailer_id: string;
+  email: string;
+  password: string;
+}): Promise<{
+  data: { id: string } | null;
+  error: PostgrestError | Error | null;
+}> {
+  const supabase = createClient();
+
+  try {
+    // Use the API route to create a user (this calls the server-side admin client)
+    const response = await fetch('/api/admin/create-user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email,
+        password: password,
+        userData: {
+          role: 'terminal',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { data: null, error: new Error(errorData.error || 'Failed to create user') };
+    }
+
+    const { user } = await response.json();
+
+    if (!user) {
+      return {
+        data: null,
+        error: new Error('Failed to create user in authentication system'),
+      };
+    }
+
+    // Next, create the profile linked to the new user ID
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: user.id, // Use the UUID from Supabase auth
+        full_name: contact_person,
+        email: email,
+        role: 'terminal',
+      })
+      .select('id')
+      .single();
+
+    if (profileError) {
+      console.error('Error creating profile:', profileError);
+      // We can't delete the auth user here as we don't have admin privileges
+      // The user will remain in Auth but without a profile
+      return { data: null, error: profileError };
+    }
+
+    // Finally, create the terminal
+    const { data: terminal, error: terminalError } = await supabase
+      .from('terminals')
+      .insert({
+        name,
+        retailer_id,
+        status: 'active',
+        auth_user_id: user.id,
+      })
+      .select('id')
+      .single();
+
+    if (terminalError) {
+      console.error('Error creating terminal:', terminalError);
+      // We can't delete the auth user here without admin privileges
+      // Just return the error to the client
+      return { data: null, error: terminalError };
+    }
+
+    return { data: terminal, error: null };
+  } catch (error) {
+    console.error('Unexpected error in createTerminal:', error);
+    return {
+      data: null,
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+}

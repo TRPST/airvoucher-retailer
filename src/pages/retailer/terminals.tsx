@@ -1,7 +1,16 @@
 import * as React from 'react';
-import { Terminal, Plus, Loader2, AlertCircle, Search, CheckCircle, XCircle } from 'lucide-react';
-import * as Dialog from '@radix-ui/react-dialog';
+import {
+  Terminal,
+  Plus,
+  Loader2,
+  AlertCircle,
+  Search,
+  CheckCircle,
+  XCircle,
+  User,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Switch } from '@/components/ui/switch';
 
 import {
   fetchMyRetailer,
@@ -9,6 +18,7 @@ import {
   type RetailerProfile,
   type Terminal as TerminalType,
 } from '@/actions/retailerActions';
+import { AddTerminalDialog } from '@/components/retailer/AddTerminalDialog';
 import useRequireRole from '@/hooks/useRequireRole';
 import { cn } from '@/utils/cn';
 
@@ -25,13 +35,6 @@ export default function RetailerTerminals() {
 
   // State for add terminal dialog
   const [showAddDialog, setShowAddDialog] = React.useState(false);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [formError, setFormError] = React.useState<string | null>(null);
-  const [formData, setFormData] = React.useState<{
-    name: string;
-  }>({
-    name: '',
-  });
 
   // Load retailer and terminals data
   React.useEffect(() => {
@@ -55,6 +58,7 @@ export default function RetailerTerminals() {
         if (terminalError) {
           throw new Error('Could not load terminals');
         }
+        console.log('terminalList', terminalList);
         setTerminals(terminalList || []);
       } catch (err) {
         setDataError(err instanceof Error ? err.message : 'Unknown error');
@@ -74,62 +78,6 @@ export default function RetailerTerminals() {
       terminal.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [terminals, searchTerm]);
-
-  // Handle input changes in the form
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Handle terminal creation
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validate form
-    if (!formData.name.trim()) {
-      setFormError('Terminal name is required');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setFormError(null);
-
-    try {
-      if (!retailer) {
-        throw new Error('Retailer profile not loaded');
-      }
-
-      // Call API to create terminal
-      const response = await fetch('/api/retailer/terminals/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          retailerId: retailer.id,
-          name: formData.name,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create terminal');
-      }
-
-      const data = await response.json();
-
-      // Add new terminal to the list
-      setTerminals(prev => [...prev, data.terminal]);
-
-      // Close dialog and reset form
-      setShowAddDialog(false);
-      setFormData({ name: '' });
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to create terminal');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   // Handle terminal status toggle
   const handleToggleStatus = async (terminalId: string, currentStatus: 'active' | 'inactive') => {
@@ -246,35 +194,39 @@ export default function RetailerTerminals() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleToggleStatus(terminal.id, terminal.status)}
-                  className={cn(
-                    'inline-flex items-center justify-center rounded-full p-1 hover:bg-muted',
-                    terminal.status === 'active' ? 'text-green-500' : 'text-red-500'
-                  )}
-                  title={terminal.status === 'active' ? 'Deactivate terminal' : 'Activate terminal'}
-                >
-                  {terminal.status === 'active' ? (
-                    <CheckCircle className="h-5 w-5" />
-                  ) : (
-                    <XCircle className="h-5 w-5" />
-                  )}
-                </button>
+                <Switch
+                  checked={terminal.status === 'active'}
+                  onCheckedChange={() => handleToggleStatus(terminal.id, terminal.status)}
+                  className="data-[state=checked]:bg-green-500"
+                />
+              </div>
+              <div className="pt-4">
+                {terminal.user_profile && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Terminal User:</span>
+                    <div className="flex items-center gap-1">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                      <span>{terminal.user_profile.full_name}</span>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="mt-4 border-t border-border pt-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Last Active:</span>
-                  <span>
-                    {terminal.last_active
-                      ? new Date(terminal.last_active).toLocaleString('en-ZA', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
-                      : 'Never'}
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Last Active:</span>
+                    <span>
+                      {terminal.last_active
+                        ? new Date(terminal.last_active).toLocaleString('en-ZA', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : 'Never'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -304,71 +256,21 @@ export default function RetailerTerminals() {
       )}
 
       {/* Add Terminal Dialog */}
-      <Dialog.Root open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <Dialog.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-border bg-card p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]">
-            <div className="flex items-center justify-between">
-              <Dialog.Title className="text-lg font-semibold">Add New Terminal</Dialog.Title>
-              <Dialog.Close className="rounded-full p-2 hover:bg-muted">
-                <XCircle className="h-4 w-4" aria-hidden="true" />
-                <span className="sr-only">Close</span>
-              </Dialog.Close>
-            </div>
-
-            <div className="mt-2 space-y-4">
-              {formError && (
-                <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  <div className="flex items-center">
-                    <AlertCircle className="mr-2 h-4 w-4" />
-                    {formError}
-                  </div>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4 space-y-2">
-                  <label className="text-sm font-medium">Terminal Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    placeholder="Enter terminal name"
-                    required
-                  />
-                </div>
-
-                <div className="mt-6 flex justify-end space-x-2">
-                  <Dialog.Close asChild>
-                    <button
-                      type="button"
-                      className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-muted"
-                    >
-                      Cancel
-                    </button>
-                  </Dialog.Close>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      'Add Terminal'
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      {retailer && (
+        <AddTerminalDialog
+          isOpen={showAddDialog}
+          onClose={() => setShowAddDialog(false)}
+          retailerId={retailer.id}
+          onTerminalAdded={() => {
+            // Refresh terminals list
+            fetchTerminals(retailer.id).then(({ data, error }) => {
+              if (!error && data) {
+                setTerminals(data);
+              }
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

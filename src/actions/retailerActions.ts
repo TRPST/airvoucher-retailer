@@ -30,6 +30,11 @@ export type Terminal = {
   name: string;
   last_active: string | null;
   status: 'active' | 'inactive';
+  auth_user_id: string | null;
+  user_profile?: {
+    full_name: string;
+    email: string;
+  } | null;
 };
 
 export type Sale = {
@@ -673,39 +678,61 @@ export async function fetchRetailerCommissionData({
 }
 
 /**
- * Fetch terminals for a retailer
+ * Fetch terminals for a retailer with their user profiles
  */
 export async function fetchTerminals(retailerId: string): Promise<{
   data: Terminal[] | null;
-  error: PostgrestError | null;
+  error: PostgrestError | Error | null;
 }> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
-    .from('terminals')
-    .select(
+  try {
+    const { data, error } = await supabase
+      .from('terminals')
+      .select(
+        `
+        id,
+        name,
+        last_active,
+        status,
+        auth_user_id,
+        user_profile:profiles!auth_user_id(id, full_name, email)
       `
-      id,
-      name,
-      last_active,
-      status
-    `
-    )
-    .eq('retailer_id', retailerId);
+      )
+      .eq('retailer_id', retailerId)
+      .order('name');
 
-  if (error) {
-    return { data: null, error };
+    if (error) {
+      return { data: null, error };
+    }
+
+    // Transform the data to match the Terminal type
+    const terminals = data.map(terminal => {
+      const userProfile = Array.isArray(terminal.user_profile)
+        ? terminal.user_profile[0]
+        : terminal.user_profile;
+      return {
+        id: terminal.id,
+        name: terminal.name,
+        last_active: terminal.last_active,
+        status: terminal.status,
+        auth_user_id: terminal.auth_user_id,
+        user_profile: userProfile
+          ? {
+              full_name: userProfile.full_name,
+              email: userProfile.email,
+            }
+          : null,
+      };
+    });
+
+    return { data: terminals, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error(String(err)),
+    };
   }
-
-  // Transform the data to match the Terminal type
-  const terminals = data.map(terminal => ({
-    id: terminal.id,
-    name: terminal.name,
-    last_active: terminal.last_active,
-    status: terminal.status as 'active' | 'inactive',
-  }));
-
-  return { data: terminals, error: null };
 }
 
 /**
