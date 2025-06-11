@@ -6,6 +6,7 @@ import { StatsTile } from '@/components/ui/stats-tile';
 import { cn } from '@/utils/cn';
 import useRequireRole from '@/hooks/useRequireRole';
 import { fetchMyRetailer, type RetailerProfile } from '@/actions/retailerActions';
+import { CompactStatsTile } from '@/components/ui/compact-stats-tile';
 
 export default function RetailerAccount() {
   // Protect this route - only allow retailer role
@@ -98,8 +99,37 @@ export default function RetailerAccount() {
         <p className="text-muted-foreground">Manage your account details and view your balance.</p>
       </div>
 
+      {/* Mobile Sticky Stats Header */}
+      <div className="sticky top-20 z-10 block md:hidden">
+        <div className="absolute inset-0 bg-background/95 backdrop-blur-sm" />
+        <div className="relative z-10">
+          <div className="scrollbar-hide overflow-x-auto">
+            <div className="flex min-w-max gap-3 pb-3 pt-3">
+              <CompactStatsTile
+                label="Available Balance"
+                value={`R ${retailer.balance.toFixed(2)}`}
+                icon={Wallet}
+                intent="success"
+              />
+              <CompactStatsTile
+                label="Available Credit"
+                value={`R ${(retailer.credit_limit - retailer.credit_used).toFixed(2)}`}
+                icon={CreditCard}
+                intent="warning"
+              />
+              <CompactStatsTile
+                label="Pending Commission"
+                value={`R ${retailer.commission_balance.toFixed(2)}`}
+                icon={Percent}
+                intent="info"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Account Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="hidden grid-cols-1 gap-4 sm:grid-cols-3 md:grid">
         <StatsTile
           label="Available Balance"
           value={`R ${retailer.balance.toFixed(2)}`}

@@ -209,8 +209,8 @@ export function Layout({ children, role = 'retailer' }: LayoutProps) {
                 <Image
                   src="/assets/airvoucher-logo.png"
                   alt="AirVoucher Logo"
-                  width={40}
-                  height={40}
+                  width={100}
+                  height={100}
                   className="mr-2"
                 />
                 {/* Logout button removed from top of sidebar */}
@@ -314,8 +314,8 @@ export function Layout({ children, role = 'retailer' }: LayoutProps) {
               <Image
                 src="/assets/airvoucher-logo.png"
                 alt="AirVoucher Logo"
-                width={40}
-                height={40}
+                width={100}
+                height={100}
                 className="mr-2"
               />
             </div>

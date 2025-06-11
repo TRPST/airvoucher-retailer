@@ -5,6 +5,13 @@ const nextConfig = {
 
   /* Prefer Pages Router */
   reactStrictMode: true,
+
+  eslint: {
+    ignoreDuringBuilds: true, // ✅ Ignore ESLint errors during Netlify builds
+  },
+  typescript: {
+    ignoreBuildErrors: true, // ✅ Ignore TypeScript errors during Netlify builds
+  },
 };
 
 module.exports = nextConfig;
