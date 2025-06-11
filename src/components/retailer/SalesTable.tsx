@@ -25,6 +25,7 @@ export interface SalesReport {
   retailer_commission: number;
   agent_commission: number;
   profit: number;
+  ref_number: string;
 }
 
 interface SalesTableProps {
@@ -98,6 +99,10 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
           aValue = a.terminal_name || '';
           bValue = b.terminal_name || '';
           break;
+        case 'ref_number':
+          aValue = a.ref_number || '';
+          bValue = b.ref_number || '';
+          break;
         default:
           return 0;
       }
@@ -117,6 +122,7 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
 
   // Table data formatting
   const tableData = paginatedSales.map(sale => {
+    console.log(sale);
     return {
       Date: new Date(sale.created_at).toLocaleString('en-ZA', {
         day: 'numeric',
@@ -148,6 +154,7 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
       Retailer: sale.retailer_name || 'Unknown',
       Terminal: sale.terminal_name || '',
       Commission: `R ${sale.retailer_commission.toFixed(2)}`,
+      RefNumber: `REF-${sale.id.slice(-8)}`,
     };
   });
 
@@ -258,7 +265,20 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
                         ))}
                     </button>
                   </th>
-
+                  <th className="whitespace-nowrap px-4 py-3">
+                    <button
+                      onClick={() => handleSort('ref_number')}
+                      className="flex items-center gap-1 hover:text-foreground"
+                    >
+                      Reference
+                      {sortField === 'ref_number' &&
+                        (sortDirection === 'asc' ? (
+                          <ChevronUp className="h-3 w-3" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3" />
+                        ))}
+                    </button>
+                  </th>
                   <th className="whitespace-nowrap px-4 py-3">
                     <button
                       onClick={() => handleSort('terminal_name')}
@@ -287,6 +307,7 @@ export function SalesTable({ salesData, voucherTypes, retailerNames }: SalesTabl
                     <td className="whitespace-nowrap px-4 py-3 text-sm font-medium">
                       {row.SaleAmount}
                     </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm">{row.RefNumber}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm">{row.Terminal}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-sm font-medium text-green-600">
                       {row['Commission']}

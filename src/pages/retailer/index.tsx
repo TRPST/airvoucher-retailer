@@ -100,6 +100,7 @@ export default function RetailerDashboard() {
           if (salesError) throw new Error('Could not load sales');
           if (terminalSales) allSales = allSales.concat(terminalSales);
         }
+        console.log(allSales);
         setSalesData(allSales);
       } catch (err) {
         setDataError(err instanceof Error ? err.message : 'Unknown error');
@@ -165,7 +166,7 @@ export default function RetailerDashboard() {
       </div>
 
       {/* Stats Tiles */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatsTile
           label="Today's Sales"
           value={`R ${todaySales.reduce((sum, s) => sum + (s.sale_amount || 0), 0).toFixed(2)}`}
@@ -174,18 +175,11 @@ export default function RetailerDashboard() {
           subtitle={`${todaySales.length} transactions`}
         />
         <StatsTile
-          label="Weekly Sales"
-          value={`R ${weekSales.reduce((sum, s) => sum + (s.sale_amount || 0), 0).toFixed(2)}`}
-          icon={Calendar}
-          intent="success"
-          subtitle="Last 7 days"
-        />
-        <StatsTile
-          label="Monthly Sales"
-          value={`R ${monthSales.reduce((sum, s) => sum + (s.sale_amount || 0), 0).toFixed(2)}`}
+          label="Total Sales"
+          value={`R ${salesData.reduce((sum, s) => sum + (s.sale_amount || 0), 0).toFixed(2)}`}
           icon={ShoppingBag}
-          intent="info"
-          subtitle="Current month"
+          intent="success"
+          subtitle={`${salesData.length} total transactions`}
         />
         <StatsTile
           label="Commission Earned"
