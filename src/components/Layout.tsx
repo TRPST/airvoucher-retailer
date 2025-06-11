@@ -17,6 +17,7 @@ import {
   X,
   ChevronRight,
   LogOut,
+  Terminal,
 } from 'lucide-react';
 // Import Supabase client directly
 import supabase from '@/lib/supabaseClient';
@@ -86,9 +87,9 @@ export function Layout({ children, role = 'admin' }: LayoutProps) {
         icon: ShoppingCart,
       },
       {
-        name: 'History',
-        href: '/retailer/history',
-        icon: History,
+        name: 'Terminals',
+        href: '/retailer/terminals',
+        icon: Terminal,
       },
       {
         name: 'Account',

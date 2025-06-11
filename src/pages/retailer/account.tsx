@@ -1,32 +1,64 @@
-import * as React from "react";
-import {
-  Wallet,
-  CreditCard,
-  Percent,
-  HelpCircle,
-  Building,
-  User,
-  Mail,
-  Phone,
-} from "lucide-react";
-import { motion } from "framer-motion";
+import * as React from 'react';
+import { Wallet, CreditCard, Percent, HelpCircle, Building, User, Mail, Phone } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-import { StatsTile } from "@/components/ui/stats-tile";
-import { retailers } from "@/lib/MockData";
-import { cn } from "@/utils/cn";
+import { StatsTile } from '@/components/ui/stats-tile';
+import { cn } from '@/utils/cn';
+import useRequireRole from '@/hooks/useRequireRole';
+import { fetchMyRetailer, type RetailerProfile } from '@/actions/retailerActions';
 
 export default function RetailerAccount() {
-  // Get the first active retailer for demo purposes
-  const retailer = retailers.find((r) => r.status === "active") || retailers[0];
+  // Protect this route - only allow retailer role
+  const { isLoading, user } = useRequireRole('retailer');
 
-  // Bank details (mock data)
+  // State for retailer data
+  const [retailer, setRetailer] = React.useState<RetailerProfile | null>(null);
+  const [isDataLoading, setIsDataLoading] = React.useState(true);
+  const [dataError, setDataError] = React.useState<string | null>(null);
+
+  // Fetch retailer data
+  React.useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      setIsDataLoading(true);
+      setDataError(null);
+      try {
+        const { data: retailerProfile, error: retailerError } = await fetchMyRetailer(user.id);
+        if (retailerError || !retailerProfile) throw new Error('Could not load retailer profile');
+        setRetailer(retailerProfile);
+      } catch (err) {
+        setDataError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setIsDataLoading(false);
+      }
+    };
+    if (!isLoading) loadData();
+  }, [user, isLoading]);
+
+  // Loading and error states
+  if (isLoading || isDataLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <span className="ml-2">Loading...</span>
+      </div>
+    );
+  }
+  if (dataError) {
+    return <div className="p-8 text-center text-red-500">{dataError}</div>;
+  }
+  if (!retailer) {
+    return <div className="p-8 text-center text-red-500">No retailer profile found</div>;
+  }
+
+  // Bank details (mock data for now)
   const bankDetails = {
-    accountName: "Soweto Corner Shop",
-    accountNumber: "1234567890",
-    bankName: "FNB",
-    branchCode: "250655",
-    accountType: "Business",
-    reference: "AV" + retailer.id.toUpperCase(),
+    accountName: retailer.name,
+    accountNumber: '1234567890',
+    bankName: 'FNB',
+    branchCode: '250655',
+    accountType: 'Business',
+    reference: 'AV' + retailer.id.toUpperCase(),
   };
 
   // Tooltip component
@@ -62,12 +94,8 @@ export default function RetailerAccount() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          Account
-        </h1>
-        <p className="text-muted-foreground">
-          Manage your account details and view your balance.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Account</h1>
+        <p className="text-muted-foreground">Manage your account details and view your balance.</p>
       </div>
 
       {/* Account Stats */}
@@ -81,14 +109,14 @@ export default function RetailerAccount() {
         />
         <StatsTile
           label="Credit Used"
-          value={`R ${retailer.credit.toFixed(2)}`}
+          value={`R ${retailer.credit_used.toFixed(2)}`}
           icon={CreditCard}
           intent="warning"
           subtitle="Active credit amount"
         />
         <StatsTile
           label="Pending Commission"
-          value={`R ${retailer.commission.toFixed(2)}`}
+          value={`R ${retailer.commission_balance.toFixed(2)}`}
           icon={Percent}
           intent="info"
           subtitle="Ready for withdrawal"
@@ -115,7 +143,7 @@ export default function RetailerAccount() {
               <User className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">Contact Person</p>
-                <p className="font-medium">{retailer.contact}</p>
+                <p className="font-medium">{retailer.profile?.full_name || 'Not set'}</p>
               </div>
             </div>
 
@@ -131,7 +159,7 @@ export default function RetailerAccount() {
               <Mail className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{retailer.email}</p>
+                <p className="font-medium">{retailer.profile?.email || 'Not set'}</p>
               </div>
             </div>
 
@@ -210,10 +238,10 @@ export default function RetailerAccount() {
               <div>
                 <h3 className="font-medium">Available for Withdrawal</h3>
                 <p className="text-xl font-bold text-primary">
-                  R {retailer.commission.toFixed(2)}
+                  R {retailer.commission_balance.toFixed(2)}
                 </p>
               </div>
-              {retailer.commission >= 100 ? (
+              {retailer.commission_balance >= 100 ? (
                 <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90">
                   Request Withdrawal
                 </button>
@@ -226,7 +254,7 @@ export default function RetailerAccount() {
                 </button>
               )}
             </div>
-            {retailer.commission < 100 && (
+            {retailer.commission_balance < 100 && (
               <p className="mt-2 text-xs text-muted-foreground">
                 You need a minimum of R100.00 to request a withdrawal.
               </p>
@@ -236,9 +264,7 @@ export default function RetailerAccount() {
           <div className="space-y-2">
             <h3 className="font-medium">Recent Withdrawals</h3>
             <div className="rounded-md bg-muted/50 p-10 text-center">
-              <p className="text-sm text-muted-foreground">
-                No recent withdrawals found.
-              </p>
+              <p className="text-sm text-muted-foreground">No recent withdrawals found.</p>
             </div>
           </div>
         </div>
