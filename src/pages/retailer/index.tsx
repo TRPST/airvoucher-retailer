@@ -16,6 +16,7 @@ import {
   type Terminal,
   type Sale,
 } from '@/actions/retailerActions';
+import { CompactStatsTile } from '@/components/ui/compact-stats-tile';
 
 // Type definitions for chart data
 type SalesDataPoint = {
@@ -153,6 +154,7 @@ export default function RetailerDashboard() {
     retailer_commission: s.retailer_commission ?? 0,
     agent_commission: 0, // Not available in Sale, set to 0 or fetch if needed
     profit: 0, // Not available in Sale, set to 0 or fetch if needed
+    ref_number: s.ref_number || `REF-${s.id.slice(-8)}`,
   }));
 
   return (
@@ -164,9 +166,37 @@ export default function RetailerDashboard() {
           <p className="text-muted-foreground">View your sales performance and statistics</p>
         </div>
       </div>
+      {/* Mobile Sticky Stats Header */}
+      <div className="sticky top-20 z-10 block md:hidden">
+        <div className="absolute inset-0 bg-background/95 backdrop-blur-sm" />
+        <div className="relative z-10">
+          <div className="scrollbar-hide overflow-x-auto">
+            <div className="flex min-w-max gap-3 pb-3 pt-3">
+              <CompactStatsTile
+                label="Today's Sales"
+                value={`R ${todaySales.reduce((sum, s) => sum + (s.sale_amount || 0), 0).toFixed(2)}`}
+                icon={Activity}
+                intent="primary"
+              />
+              <CompactStatsTile
+                label="Total Sales"
+                value={`R ${salesData.reduce((sum, s) => sum + (s.sale_amount || 0), 0).toFixed(2)}`}
+                icon={ShoppingBag}
+                intent="success"
+              />
+              <CompactStatsTile
+                label="Commission Earned"
+                value={`R ${commissionEarned.toFixed(2)}`}
+                icon={Percent}
+                intent="warning"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Stats Tiles */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="hidden grid-cols-1 gap-4 sm:grid-cols-2 md:grid lg:grid-cols-3">
         <StatsTile
           label="Today's Sales"
           value={`R ${todaySales.reduce((sum, s) => sum + (s.sale_amount || 0), 0).toFixed(2)}`}

@@ -124,16 +124,67 @@ export function Layout({ children, role = 'retailer' }: LayoutProps) {
       {/* Mobile top nav */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background p-4 md:hidden">
         <div className="flex items-center">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="mr-2 rounded-md p-2 hover:bg-muted"
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <span className="font-bold">AirVoucher</span>
+          <Image
+            src="/assets/airvoucher-logo.png"
+            alt="AirVoucher Logo"
+            width={100}
+            height={100}
+            className="mr-2"
+          />
+          <div className="flex flex-col">
+            {retailerName && <span className="font-bold">{retailerName}</span>}
+          </div>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {/* Mobile user account dropdown */}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button
+                className="flex items-center rounded-full border-0 p-2 outline-none transition-colors hover:bg-muted focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none"
+                aria-label="User menu"
+                style={{ outline: 'none !important', border: 'none !important' }}
+              >
+                <Avatar.Root className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary text-primary-foreground">
+                  <Avatar.Fallback>
+                    {user && user.email ? user.email.charAt(0).toUpperCase() : 'A'}
+                  </Avatar.Fallback>
+                </Avatar.Root>
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                side="bottom"
+                align="end"
+                sideOffset={8}
+                className="z-50 min-w-[180px] overflow-hidden border-0 bg-background p-1 shadow-none outline-none ring-0 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200 focus:border-0 focus:outline-none focus:ring-0"
+                style={{
+                  boxShadow: 'none !important',
+                  outline: 'none !important',
+                  border: 'none !important',
+                  borderRadius: '0.375rem',
+                }}
+              >
+                <DropdownMenu.Item
+                  className="group flex cursor-pointer items-center rounded-md border-0 px-3 py-2 text-sm outline-none transition-colors hover:bg-muted focus:border-0 focus:outline-none focus:ring-0 data-[highlighted]:border-0 data-[highlighted]:bg-muted data-[highlighted]:outline-none data-[state=open]:outline-none"
+                  onSelect={handleSignOut}
+                >
+                  <motion.div
+                    className="flex w-full items-center justify-between"
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ duration: 0.1, ease: 'easeOut' }}
+                  >
+                    <div className="flex items-center">
+                      <LogOut className="mr-3 h-5 w-5" />
+                      Sign Out
+                    </div>
+                    <ChevronRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
+                  </motion.div>
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
       </div>
 
       {/* Mobile sidebar (drawer) */}
@@ -260,9 +311,13 @@ export function Layout({ children, role = 'retailer' }: LayoutProps) {
         <div className="flex h-full flex-col">
           <div className="mb-4">
             <div className="flex items-center justify-between">
-              <img src="/assets/airvoucher-logo.png" alt="AirVoucher Logo" className="mr-2 h-8" />
-              {/* Logout button removed from top of sidebar */}
-              <div className="h-5 w-8"></div> {/* Spacer to maintain layout */}
+              <Image
+                src="/assets/airvoucher-logo.png"
+                alt="AirVoucher Logo"
+                width={40}
+                height={40}
+                className="mr-2"
+              />
             </div>
             <div className="mt-4 rounded-full bg-primary px-4 py-1 text-center text-sm font-medium text-primary-foreground">
               {role === 'retailer' && retailerName
@@ -270,7 +325,6 @@ export function Layout({ children, role = 'retailer' }: LayoutProps) {
                 : role.charAt(0).toUpperCase() + role.slice(1) + ' Portal'}
             </div>
           </div>
-          {/* User info removed from here - moved to bottom */}
 
           <nav className="flex flex-1 flex-col space-y-1">
             {navItems.map(item => (
@@ -297,8 +351,6 @@ export function Layout({ children, role = 'retailer' }: LayoutProps) {
               </Link>
             ))}
           </nav>
-          {/* Spacer to push user info and footer to bottom */}
-          <div className="flex-1"></div>
 
           {/* User info placed at bottom of sidebar with drop-up menu */}
           <div className="mb-4 mt-auto">
@@ -356,20 +408,37 @@ export function Layout({ children, role = 'retailer' }: LayoutProps) {
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
           </div>
-
-          <div className="border-t border-border pt-4">
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">© 2025 AirVoucher</div>
-              <ThemeToggle />
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Main content */}
-      <main className="flex-1 md:pl-64">
-        <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">{children}</div>
+      <main className="flex-1 md:pl-64 md:pt-16">
+        <div className="mx-auto max-w-7xl p-4 pb-20 md:p-6 md:pb-4 lg:p-8 lg:pb-8">{children}</div>
       </main>
+
+      {/* Mobile bottom tab navigation */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background md:hidden">
+        <nav className="flex items-center justify-around px-2 py-2">
+          {navItems.map(item => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex min-w-0 flex-1 flex-col items-center justify-center rounded-md px-3 py-2 text-xs transition-colors',
+                  isActive
+                    ? 'bg-primary/10 font-medium text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <item.icon className={cn('mb-1 h-5 w-5', isActive ? 'text-primary' : '')} />
+                <span className="truncate">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
     </div>
   );
 }
